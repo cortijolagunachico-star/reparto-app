@@ -1,0 +1,1048 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Sistema de Reparto Inteligente</title>
+    <!-- Configuración PWA e Instalación Móvil -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#d97706">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="RepartoApp">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3081/3081986.png">
+    <!-- CSS Estilos -->
+    <link rel="stylesheet" href="style.css">
+    <!-- FontAwesome para iconos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+    <!-- CABECERA PRINCIPAL -->
+    <header>
+        <div class="brand-container">
+            <div id="app-logo" class="brand-logo">P</div>
+            <span id="app-brand-name" class="brand-name">Cargando...</span>
+        </div>
+        
+        <div class="mode-selector">
+            <button id="btn-mode-admin" class="mode-btn active" onclick="switchSystemMode('admin')">
+                <i class="fa-solid fa-truck-ramp-box"></i> <span id="lbl-admin-mode-name">Modo Panadero</span>
+            </button>
+            <button id="btn-mode-client" class="mode-btn" onclick="switchSystemMode('client')">
+                <i class="fa-solid fa-user"></i> <span>Modo Cliente</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- CONTENEDOR PRINCIPAL -->
+    <div class="app-container">
+        
+        <!-- SIDEBAR (MENÚ DE NAVEGACIÓN) -->
+        <aside>
+            <!-- Menú del Administrador -->
+            <ul id="menu-admin" class="nav-menu">
+                <li class="nav-item" id="nav-ruta-movil">
+                    <button onclick="switchView('ruta-movil')" style="background: rgba(16, 185, 129, 0.15); color: var(--accent); border-radius: 10px; font-weight: 700;">
+                        <i class="fa-solid fa-map-location-dot"></i> <span>Ruta en Furgoneta</span>
+                    </button>
+                </li>
+                <li class="nav-item active" id="nav-reparto">
+                    <button onclick="switchView('reparto')">
+                        <i class="fa-solid fa-route"></i> <span>Reparto Diario</span>
+                    </button>
+                </li>
+                <li class="nav-item" id="nav-catalog">
+                    <button onclick="switchView('catalog')">
+                        <i class="fa-solid fa-store"></i> <span id="lbl-catalog-nav-name">Catálogo</span>
+                    </button>
+                </li>
+                <li class="nav-item" id="nav-clients">
+                    <button onclick="switchView('clients')">
+                        <i class="fa-solid fa-users"></i> <span>Clientes</span>
+                    </button>
+                </li>
+                <li class="nav-item" id="nav-finance">
+                    <button onclick="switchView('finance')">
+                        <i class="fa-solid fa-wallet"></i> <span>Caja y Saldos</span>
+                    </button>
+                </li>
+                <li class="nav-item" id="nav-settings">
+                    <button onclick="switchView('settings')">
+                        <i class="fa-solid fa-gears"></i> <span>Configurar Marca</span>
+                    </button>
+                </li>
+            </ul>
+
+            <!-- Menú del Cliente -->
+            <ul id="menu-client" class="nav-menu" style="display: none;">
+                <li class="nav-item active" id="nav-client-dashboard">
+                    <button onclick="switchView('client-dashboard')">
+                        <i class="fa-solid fa-house"></i> <span>Mi Cuenta</span>
+                    </button>
+                </li>
+                <li class="nav-item" id="nav-client-subs">
+                    <button onclick="switchView('client-subs')">
+                        <i class="fa-solid fa-calendar-days"></i> <span>Mis Suscripciones</span>
+                    </button>
+                </li>
+                <li class="nav-item" id="nav-client-oneoff">
+                    <button onclick="switchView('client-oneoff')">
+                        <i class="fa-solid fa-basket-shopping"></i> <span>Pedido Extra</span>
+                    </button>
+                </li>
+                <li class="nav-item" id="nav-client-history">
+                    <button onclick="switchView('client-history')">
+                        <i class="fa-solid fa-list-check"></i> <span>Historial</span>
+                    </button>
+                </li>
+            </ul>
+
+            <!-- Selector de Cliente Activo (Simulador para testing) -->
+            <div id="simulated-client-wrapper" class="client-selector-container" style="display: none;">
+                <label for="client-simulator-select"><i class="fa-solid fa-user-gear"></i> Simular Cliente:</label>
+                <select id="client-simulator-select" class="client-select" onchange="onSimulatedClientChange()">
+                    <!-- Se carga dinámicamente -->
+                </select>
+            </div>
+        </aside>
+
+        <!-- ÁREA PRINCIPAL -->
+        <main>
+
+            <!-- ===================================================================
+                 VISTAS ADMINISTRADOR (PANADERO / DISTRIBUIDOR)
+                 =================================================================== -->
+
+            <!-- VISTA: MODO RUTA EN FURGONETA (OPTIMIZADA PARA MÓVIL Y TABLET) -->
+            <section id="view-ruta-movil" class="section-view">
+                <div class="ruta-movil-header">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; gap: 0.5rem; flex-wrap: wrap;">
+                        <button class="btn btn-secondary btn-small" onclick="switchView('reparto')">
+                            <i class="fa-solid fa-arrow-left"></i> Volver a Tabla
+                        </button>
+                        <div class="date-selector" style="padding: 0.35rem 0.75rem;">
+                            <label for="ruta-date-input"><i class="fa-solid fa-calendar-day"></i></label>
+                            <input type="date" id="ruta-date-input" onchange="syncRutaDate(this.value)">
+                        </div>
+                    </div>
+                    
+                    <!-- Tarjeta de Progreso en Ruta -->
+                    <div class="card ruta-progress-card" style="margin-bottom: 1.25rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                            <span style="font-weight: 700; font-size: 1.05rem;"><i class="fa-solid fa-truck-fast"></i> Progreso en Ruta</span>
+                            <span id="ruta-progress-text" style="font-weight: 800; font-size: 1.1rem; color: var(--accent);">0 de 0</span>
+                        </div>
+                        <div class="progress-bar-container">
+                            <div id="ruta-progress-bar" class="progress-bar-fill" style="width: 0%;"></div>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; font-size: 0.85rem; color: var(--text-muted); margin-top: 0.75rem;">
+                            <span>Por cobrar en ruta: <strong id="ruta-pending-money" style="color: var(--warning);">0.00 €</strong></span>
+                            <span>Valor total: <strong id="ruta-total-money" style="color: var(--text-main);">0.00 €</strong></span>
+                        </div>
+                    </div>
+
+                    <!-- Filtros rápidos para el repartidor con el pulgar -->
+                    <div class="ruta-filter-tabs">
+                        <button id="tab-filter-pending" class="ruta-filter-btn active" onclick="filterRutaOrders('pending')">
+                            <i class="fa-solid fa-clock"></i> Pendientes (<span id="count-ruta-pending">0</span>)
+                        </button>
+                        <button id="tab-filter-delivered" class="ruta-filter-btn" onclick="filterRutaOrders('delivered')">
+                            <i class="fa-solid fa-check-double"></i> Entregados (<span id="count-ruta-delivered">0</span>)
+                        </button>
+                        <button id="tab-filter-all" class="ruta-filter-btn" onclick="filterRutaOrders('all')">
+                            <i class="fa-solid fa-list"></i> Todos
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Contenedor de Tarjetas Táctiles de Entrega -->
+                <div id="ruta-orders-container" class="ruta-orders-list">
+                    <!-- Se renderiza dinámicamente -->
+                </div>
+            </section>
+
+            <!-- VISTA: REPARTO DIARIO -->
+            <section id="view-reparto" class="section-view active">
+                <div class="view-header">
+                    <div class="view-title">
+                        <h1 id="lbl-reparto-title">Reparto del Día</h1>
+                        <p>Genera la hoja de reparto, sigue las entregas y registra incidencias.</p>
+                    </div>
+                    <button class="btn btn-success" onclick="switchView('ruta-movil')" style="box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4);">
+                        <i class="fa-solid fa-mobile-screen-button"></i> Abrir Modo Ruta Móvil
+                    </button>
+                </div>
+
+                <!-- Estadísticas Rápidas -->
+                <div class="stats-grid">
+                    <div class="card stat-card">
+                        <div class="stat-icon"><i class="fa-solid fa-truck"></i></div>
+                        <div class="stat-info">
+                            <div id="stat-pending-deliveries" class="stat-value">0</div>
+                            <div class="stat-label">Pendientes</div>
+                        </div>
+                    </div>
+                    <div class="card stat-card">
+                        <div class="stat-icon" style="background: rgba(16, 185, 129, 0.15); color: var(--accent);"><i class="fa-solid fa-circle-check"></i></div>
+                        <div class="stat-info">
+                            <div id="stat-completed-deliveries" class="stat-value">0</div>
+                            <div class="stat-label">Entregados</div>
+                        </div>
+                    </div>
+                    <div class="card stat-card">
+                        <div class="stat-icon" style="background: rgba(245, 158, 11, 0.15); color: var(--warning);"><i class="fa-solid fa-coins"></i></div>
+                        <div class="stat-info">
+                            <div id="stat-day-earnings" class="stat-value">0.00 €</div>
+                            <div class="stat-label">Valor Total Reparto</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Controles de Reparto -->
+                <div class="card" style="margin-bottom: 2rem;">
+                    <div class="reparto-controls">
+                        <div class="date-selector">
+                            <label for="reparto-date-input"><i class="fa-solid fa-calendar"></i> Fecha:</label>
+                            <input type="date" id="reparto-date-input" onchange="loadRepartoDay()">
+                        </div>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <button class="btn btn-secondary" onclick="generateDailyOrdersForSelectedDate()">
+                                <i class="fa-solid fa-wand-magic-sparkles"></i> Generar Pedidos del Día
+                            </button>
+                            <button class="btn btn-primary" onclick="openAddManualOrderModal()">
+                                <i class="fa-solid fa-plus"></i> Pedido Manual
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Tabla de Repartos -->
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Cliente / Dirección</th>
+                                    <th>Productos</th>
+                                    <th>Importe</th>
+                                    <th>Tipo</th>
+                                    <th>Estado</th>
+                                    <th style="text-align: right;">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="reparto-table-body">
+                                <!-- Se rellena dinámicamente -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- VISTA: CATÁLOGO DE PRODUCTOS -->
+            <section id="view-catalog" class="section-view">
+                <div class="view-header">
+                    <div class="view-title">
+                        <h1 id="lbl-catalog-title">Catálogo de Productos</h1>
+                        <p>Edita nombres, precios e imágenes de cada producto del catálogo.</p>
+                    </div>
+                    <button class="btn btn-primary" onclick="openAddProductModal()">
+                        <i class="fa-solid fa-plus"></i> Nuevo Producto
+                    </button>
+                </div>
+
+                <div id="catalog-grid-container" class="catalog-grid">
+                    <!-- Se carga dinámicamente -->
+                </div>
+            </section>
+
+            <!-- VISTA: CLIENTES Y SUSCRIPCIONES -->
+            <section id="view-clients" class="section-view">
+                <div class="view-header">
+                    <div class="view-title">
+                        <h1>Gestión de Clientes</h1>
+                        <p>De alta nuevos clientes, configura sus repartos periódicos y consulta direcciones.</p>
+                    </div>
+                    <button class="btn btn-primary" onclick="openAddClientModal()">
+                        <i class="fa-solid fa-user-plus"></i> Nuevo Cliente
+                    </button>
+                </div>
+
+                <div id="clients-grid-container" class="clients-grid">
+                    <!-- Se carga dinámicamente -->
+                </div>
+            </section>
+
+            <!-- VISTA: CAJA Y SALDOS (FINANZAS) -->
+            <section id="view-finance" class="section-view">
+                <div class="view-header">
+                    <div class="view-title">
+                        <h1>Caja y Saldos Pendientes</h1>
+                        <p>Controla las deudas de los clientes y registra cobros realizados manualmente.</p>
+                    </div>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="card stat-card">
+                        <div class="stat-icon" style="background: rgba(244, 63, 94, 0.15); color: var(--danger);"><i class="fa-solid fa-hand-holding-dollar"></i></div>
+                        <div class="stat-info">
+                            <div id="stat-total-debt" class="stat-value">0.00 €</div>
+                            <div class="stat-label">Deuda Total Clientes</div>
+                        </div>
+                    </div>
+                    <div class="card stat-card">
+                        <div class="stat-icon" style="background: rgba(16, 185, 129, 0.15); color: var(--accent);"><i class="fa-solid fa-piggy-bank"></i></div>
+                        <div class="stat-info">
+                            <div id="stat-total-collected" class="stat-value">0.00 €</div>
+                            <div class="stat-label">Total Cobrado (Histórico)</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card" style="margin-bottom: 2rem;">
+                    <h3 style="margin-bottom: 1rem;"><i class="fa-solid fa-file-invoice-dollar"></i> Clientes Deudores</h3>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Cliente</th>
+                                    <th>Teléfono / Dirección</th>
+                                    <th>Saldo Pendiente</th>
+                                    <th style="text-align: right;">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="finance-clients-table-body">
+                                <!-- Dinámico -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3 style="margin-bottom: 1rem;"><i class="fa-solid fa-history"></i> Historial de Cobros Recientes</h3>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Cliente</th>
+                                    <th>Importe</th>
+                                    <th>Método</th>
+                                    <th>ID Pago</th>
+                                </tr>
+                            </thead>
+                            <tbody id="finance-payments-table-body">
+                                <!-- Dinámico -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- VISTA: CONFIGURAR MARCA (MARCA BLANCA) -->
+            <section id="view-settings" class="section-view">
+                <div class="view-header">
+                    <div class="view-title">
+                        <h1>Configurar Marca y Negocio</h1>
+                        <p>Personaliza la app al instante para cualquier sector de reparto o marca corporativa.</p>
+                    </div>
+                </div>
+
+                <div class="config-container">
+                    <!-- Formulario de Configuración -->
+                    <div class="card">
+                        <h3 style="margin-bottom: 1.5rem;"><i class="fa-solid fa-sliders"></i> Ajustes de Identidad</h3>
+                        
+                        <div class="form-group">
+                            <label>Negocio Predefinido (Cargar Plantilla)</label>
+                            <div class="preset-grid">
+                                <div id="preset-bakery" class="preset-card active" onclick="applyBusinessPreset('bakery')">
+                                    <div class="preset-icon">🍞</div>
+                                    <div class="preset-name">Panadería</div>
+                                </div>
+                                <div id="preset-fish" class="preset-card" onclick="applyBusinessPreset('fish')">
+                                    <div class="preset-icon">🐟</div>
+                                    <div class="preset-name">Congelados</div>
+                                </div>
+                                <div id="preset-drinks" class="preset-card" onclick="applyBusinessPreset('drinks')">
+                                    <div class="preset-icon">🥤</div>
+                                    <div class="preset-name">Bebidas</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="setting-business-name">Nombre del Negocio</label>
+                            <input type="text" id="setting-business-name" class="form-control" placeholder="Ej: Panadería La Espiga">
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="setting-business-type">Tipo de Sector (Etiqueta)</label>
+                                <input type="text" id="setting-business-type" class="form-control" placeholder="Ej: Panadería, Congelados...">
+                            </div>
+                            <div class="form-group">
+                                <label for="setting-admin-role">Nombre Rol Administrador</label>
+                                <input type="text" id="setting-admin-role" class="form-control" placeholder="Ej: Panadero, Distribuidor...">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Branding Visual</label>
+                            <div class="color-picker-row">
+                                <div class="color-input-wrapper">
+                                    <input type="color" id="setting-primary-color" oninput="updateColorLive(this.value)">
+                                </div>
+                                <div>
+                                    <span style="font-size: 0.85rem; color: var(--text-muted);">Color Corporativo Principal</span>
+                                    <div style="font-size: 0.75rem; font-family: monospace;" id="setting-color-hex">#d97706</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="setting-font-family">Tipografía Principal</label>
+                            <select id="setting-font-family" class="form-control">
+                                <option value="'Outfit', sans-serif">Outfit (Moderna & Redonda)</option>
+                                <option value="'Montserrat', sans-serif">Montserrat (Limpia & Geométrica)</option>
+                                <option value="'Playfair Display', serif">Playfair Display (Elegante & Clásica)</option>
+                                <option value="'Roboto', sans-serif">Roboto (Estándar & Neutra)</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="setting-logo-url">URL del Logo (Opcional)</label>
+                            <input type="text" id="setting-logo-url" class="form-control" placeholder="https://ejemplo.com/logo.png">
+                        </div>
+
+                        <div style="display: flex; gap: 0.75rem; margin-top: 2rem;">
+                            <button class="btn btn-primary" onclick="saveSettings()">
+                                <i class="fa-solid fa-floppy-disk"></i> Guardar Cambios
+                            </button>
+                            <button class="btn btn-secondary" onclick="restoreSettingsDefault()">
+                                <i class="fa-solid fa-undo"></i> Restaurar por Defecto
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Vista Previa de Marca Blanca -->
+                    <div class="preview-card-wrapper">
+                        <h3 style="margin-bottom: 1rem;"><i class="fa-solid fa-mobile-screen"></i> Vista Previa en Móvil</h3>
+                        <div class="preview-device">
+                            <div class="preview-device-header"><div class="preview-notch"></div></div>
+                            <div class="preview-content">
+                                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">
+                                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                        <div id="preview-logo" style="width: 24px; height: 24px; font-size: 0.8rem; font-weight: bold; border-radius: 4px; border: 1.5px solid var(--primary-color); display: flex; align-items: center; justify-content: center; color: var(--primary-color);">L</div>
+                                        <span id="preview-brand-name" style="font-size: 0.95rem; font-weight: bold;">Mi Negocio</span>
+                                    </div>
+                                    <span style="font-size: 0.7rem; padding: 2px 6px; background: var(--primary-light); color: var(--primary-color); border-radius: 999px; font-weight: 600;" id="preview-role-tag">Rol</span>
+                                </div>
+                                
+                                <div style="background: var(--bg-card); border: 1px solid var(--border-color); padding: 0.85rem; border-radius: 12px; display: flex; justify-content: space-between; align-items: center;">
+                                    <div>
+                                        <div style="font-size: 0.65rem; color: var(--text-muted); font-weight: 600;">SALDO DE CLIENTE</div>
+                                        <div style="font-size: 1.3rem; font-weight: 800; color: var(--danger); margin-top: 0.1rem;">48,50 €</div>
+                                    </div>
+                                    <button class="btn btn-primary btn-small" style="font-size: 0.7rem; padding: 0.4rem 0.6rem;">Pagar Deuda</button>
+                                </div>
+
+                                <div style="display: flex; flex-direction: column; gap: 0.5rem; flex: 1; overflow: hidden;">
+                                    <div style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted);">SU SUSCRIPCIÓN DIARIA</div>
+                                    <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.5rem 0.75rem; display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem;">
+                                        <div>
+                                            <div style="font-weight: 600;" id="preview-prod-name">Producto Demo</div>
+                                            <div style="font-size: 0.65rem; color: var(--text-muted);">Cantidad: 2 unidades</div>
+                                        </div>
+                                        <span style="font-weight: bold; color: var(--primary-color);">4,00 €</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Panel de Sincronización en la Nube Gratuita -->
+                <div class="card" style="margin-top: 2rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.25rem;">
+                        <div>
+                            <h3 style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                                <i class="fa-solid fa-cloud-arrow-up" style="color: var(--accent);"></i> Sincronización en la Nube Gratuita (Multi-dispositivo)
+                            </h3>
+                            <p style="font-size: 0.85rem; color: var(--text-muted);">
+                                Conecta los teléfonos de los clientes y la tablet del repartidor en tiempo real por internet usando Firebase Firestore (Plan Gratuito Spark: 0 €/mes).
+                            </p>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 0.75rem;">
+                            <span id="cloud-sync-status-badge" class="badge badge-delivered" style="background: rgba(16, 185, 129, 0.15); color: var(--accent);">
+                                <i class="fa-solid fa-bolt"></i> Sincronización en Tiempo Real Activa
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 1rem;">
+                        <label for="setting-firebase-config">Configuración Firebase (Opcional - Pegar JSON de Credenciales Gratis)</label>
+                        <textarea id="setting-firebase-config" class="form-control" style="font-family: monospace; font-size: 0.8rem; min-height: 85px;" placeholder='{ "apiKey": "AIzaSy...", "authDomain": "tu-panaderia.firebaseapp.com", "projectId": "tu-panaderia", "storageBucket": "..." }'></textarea>
+                        <small style="color: var(--text-muted); font-size: 0.75rem; margin-top: 0.35rem; display: block;">
+                            <i class="fa-solid fa-info-circle"></i> <strong>Nota:</strong> Ya dispones de sincronización instantánea entre pestañas y dispositivos en red local por defecto. Si configuras Firebase, funcionará desde cualquier lugar del mundo a través de datos móviles 4G/5G.
+                        </small>
+                    </div>
+
+                    <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+                        <button class="btn btn-primary btn-small" onclick="saveCloudConfig()">
+                            <i class="fa-solid fa-cloud-check"></i> Guardar y Probar Conexión
+                        </button>
+                        <button class="btn btn-secondary btn-small" onclick="syncNow()">
+                            <i class="fa-solid fa-arrows-rotate"></i> Sincronizar Ahora
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ===================================================================
+                 VISTAS CLIENTE (PORTAL DE AUTOSERVICIO)
+                 =================================================================== -->
+
+            <!-- VISTA: CLIENTE - DASHBOARD / MI CUENTA -->
+            <section id="view-client-dashboard" class="section-view">
+                <div class="view-header">
+                    <div class="view-title">
+                        <h1 id="lbl-client-dashboard-title">Mi Cuenta</h1>
+                        <p>Consulta tus compras, saldos y gestiona tus pagos cuando quieras.</p>
+                    </div>
+                </div>
+
+                <!-- Banner de Deuda -->
+                <div class="debt-banner">
+                    <div class="debt-info">
+                        <div class="debt-label">Saldo Acumulado (Deuda Pendiente)</div>
+                        <div id="client-debt-value" class="debt-value no-debt">0.00 €</div>
+                    </div>
+                    <div id="client-debt-action-container" class="debt-actions" style="display: none;">
+                        <button class="btn btn-primary btn-large" onclick="openPaymentModal()">
+                            <i class="fa-solid fa-credit-card"></i> Liquidar Deuda
+                        </button>
+                    </div>
+                </div>
+
+                <div class="client-dashboard-grid">
+                    <!-- Modo Vacaciones / Pausar Reparto -->
+                    <div class="card" style="grid-column: 1 / -1; background: linear-gradient(135deg, rgba(30, 41, 59, 0.6), rgba(15, 23, 42, 0.8));">
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                            <div>
+                                <h3 class="client-section-title" style="margin-bottom: 0.25rem;"><i class="fa-solid fa-umbrella-beach"></i> Modo Vacaciones (Pausar Reparto)</h3>
+                                <p style="font-size: 0.85rem; color: var(--text-muted);">
+                                    ¿Te vas unos días fuera? Pausa tus entregas de pan para que el repartidor no te deje producto ni acumules deuda.
+                                </p>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                <span id="client-vacation-status-badge" class="badge badge-delivered">Reparto Activo</span>
+                                <button id="btn-toggle-vacation" class="btn btn-secondary btn-small" onclick="openVacationModal()">
+                                    <i class="fa-solid fa-calendar-xmark"></i> Configurar Pausa
+                                </button>
+                            </div>
+                        </div>
+                        <div id="client-vacation-active-banner" style="display: none; margin-top: 1rem; padding: 0.75rem 1rem; background: rgba(245, 158, 11, 0.15); border: 1px solid var(--warning); border-radius: 10px; font-size: 0.85rem; color: var(--warning);">
+                            <i class="fa-solid fa-triangle-exclamation"></i> <strong>Aviso:</strong> Tienes las entregas en pausa del <span id="vacation-banner-start">--</span> al <span id="vacation-banner-end">--</span>.
+                        </div>
+                    </div>
+
+                    <!-- Siguientes Entregas -->
+                    <div class="card">
+                        <h3 class="client-section-title"><i class="fa-solid fa-truck-fast"></i> Siguientes Entregas Recurrentes</h3>
+                        <div id="client-dashboard-subs-list" class="client-subs-grid">
+                            <!-- Dinámico -->
+                        </div>
+                        <button class="btn btn-secondary btn-small" onclick="switchView('client-subs')">
+                            <i class="fa-solid fa-pencil"></i> Modificar Suscripciones
+                        </button>
+                    </div>
+
+                    <!-- Resumen rápido del negocio -->
+                    <div class="card" style="display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 2rem;">
+                        <div id="client-portal-logo" class="brand-logo" style="width: 60px; height: 60px; font-size: 1.75rem; margin-bottom: 1rem;">P</div>
+                        <h3 id="client-portal-brand-name">Cargando...</h3>
+                        <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.5rem; max-width: 250px;">
+                            Reparto a domicilio diario. Tus pedidos automáticos se entregan por la mañana directamente en tu puerta.
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- VISTA: CLIENTE - GESTIONAR SUSCRIPCIONES -->
+            <section id="view-client-subs" class="section-view">
+                <div class="view-header">
+                    <div class="view-title">
+                        <h1>Mis Entregas Recurrentes</h1>
+                        <p>Configura lo que necesitas que te entreguemos de forma periódica todos los días o días específicos.</p>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3 style="margin-bottom: 1rem;"><i class="fa-solid fa-arrows-spin"></i> Mi Suscripción Actual</h3>
+                    <div class="table-container" style="margin-bottom: 1.5rem;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Producto</th>
+                                    <th>Precio</th>
+                                    <th>Frecuencia</th>
+                                    <th>Cantidad</th>
+                                    <th>Total por Envío</th>
+                                    <th style="text-align: right;">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="client-subs-table-body">
+                                <!-- Dinámico -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <button class="btn btn-primary" onclick="openAddSubscriptionModal()">
+                        <i class="fa-solid fa-plus"></i> Añadir Entrega Periódica
+                    </button>
+                </div>
+            </section>
+
+            <!-- VISTA: CLIENTE - PEDIDO PUNTUAL -->
+            <section id="view-client-oneoff" class="section-view">
+                <div class="view-header">
+                    <div class="view-title">
+                        <h1>Hacer Pedido Extra / Puntual</h1>
+                        <p>¿Necesitas algo más para un día concreto? Pide productos extraordinarios sin alterar tu suscripción.</p>
+                    </div>
+                </div>
+
+                <div class="card" style="max-width: 600px; margin: 0 auto;">
+                    <h3 style="margin-bottom: 1.5rem;"><i class="fa-solid fa-shopping-basket"></i> Crear Pedido Extraordinario</h3>
+                    
+                    <div class="form-group">
+                        <label for="client-oneoff-date">Fecha de Entrega</label>
+                        <input type="date" id="client-oneoff-date" class="form-control">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Seleccionar Productos</label>
+                        <div id="client-oneoff-products-selector" class="order-selector-grid">
+                            <!-- Cargado dinámicamente -->
+                        </div>
+                    </div>
+
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--border-color);">
+                        <div>
+                            <span style="font-size: 0.85rem; color: var(--text-muted);">Total estimado:</span>
+                            <div style="font-size: 1.5rem; font-weight: 800; color: var(--primary-color);" id="client-oneoff-total-price">0.00 €</div>
+                        </div>
+                        <button class="btn btn-primary" onclick="submitClientOneOffOrder()">
+                            <i class="fa-solid fa-circle-check"></i> Confirmar Pedido Extra
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- VISTA: CLIENTE - HISTORIAL -->
+            <section id="view-client-history" class="section-view">
+                <div class="view-header">
+                    <div class="view-title">
+                        <h1>Historial de Cuenta</h1>
+                        <p>Consulta el histórico de pedidos entregados y pagos registrados.</p>
+                    </div>
+                </div>
+
+                <div class="card" style="margin-bottom: 2rem;">
+                    <h3 style="margin-bottom: 1rem;"><i class="fa-solid fa-list"></i> Pedidos Recibidos</h3>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Productos</th>
+                                    <th>Importe</th>
+                                    <th>Tipo</th>
+                                    <th>Estado</th>
+                                </tr>
+                            </thead>
+                            <tbody id="client-history-orders-table-body">
+                                <!-- Dinámico -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3 style="margin-bottom: 1rem;"><i class="fa-solid fa-cash-register"></i> Historial de Pagos</h3>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Importe</th>
+                                    <th>Método</th>
+                                    <th>ID Pago</th>
+                                </tr>
+                            </thead>
+                            <tbody id="client-history-payments-table-body">
+                                <!-- Dinámico -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- ===================================================================
+         VENTANAS MODALES (FORMULARIOS Y POP-UPS)
+         =================================================================== -->
+
+    <!-- MODAL: CREAR / EDITAR CLIENTE (ADMIN) -->
+    <div id="modal-client" class="modal-overlay">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 id="modal-client-title">Nuevo Cliente</h3>
+                <button class="modal-close" onclick="closeModal('modal-client')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="form-client-id">
+                <div class="form-group">
+                    <label for="form-client-name">Nombre Completo</label>
+                    <input type="text" id="form-client-name" class="form-control" required placeholder="Ej: María García">
+                </div>
+                <div class="form-group">
+                    <label for="form-client-phone">Teléfono</label>
+                    <input type="tel" id="form-client-phone" class="form-control" placeholder="Ej: 600123456">
+                </div>
+                <div class="form-group">
+                    <label for="form-client-address">Dirección de Reparto</label>
+                    <input type="text" id="form-client-address" class="form-control" required placeholder="Ej: Calle Mayor 12, 3ºB">
+                </div>
+                <div class="form-group">
+                    <label for="form-client-balance">Saldo Inicial / Deuda Pendiente (€)</label>
+                    <input type="number" step="0.01" id="form-client-balance" class="form-control" value="0.00">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('modal-client')">Cancelar</button>
+                <button class="btn btn-primary" onclick="saveClientFromForm()">Guardar Cliente</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: GESTIONAR SUSCRIPCIONES DE UN CLIENTE (ADMIN) -->
+    <div id="modal-client-subs" class="modal-overlay">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 id="modal-client-subs-title">Suscripciones de Cliente</h3>
+                <button class="modal-close" onclick="closeModal('modal-client-subs')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="form-sub-client-id">
+                
+                <h4 style="margin-bottom: 0.5rem;">Suscripciones Activas</h4>
+                <div class="table-container" style="max-height: 150px; overflow-y: auto; margin-bottom: 1.5rem;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Producto</th>
+                                <th>Frecuencia</th>
+                                <th>Cant.</th>
+                                <th>Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody id="form-client-subs-list-body">
+                            <!-- Dinámico -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <h4 style="margin-bottom: 0.5rem; border-top: 1px solid var(--border-color); padding-top: 1rem;">Añadir Suscripción</h4>
+                <div class="form-group">
+                    <label for="form-sub-product">Seleccionar Producto</label>
+                    <select id="form-sub-product" class="form-control">
+                        <!-- Dinámico -->
+                    </select>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="form-sub-qty">Cantidad</label>
+                        <input type="number" id="form-sub-qty" class="form-control" value="1" min="1">
+                    </div>
+                    <div class="form-group">
+                        <label for="form-sub-freq">Frecuencia</label>
+                        <select id="form-sub-freq" class="form-control" onchange="onFormSubFreqChange(this.value)">
+                            <option value="daily">Diario</option>
+                            <option value="weekly">Semanal</option>
+                            <option value="monthly">Mensual</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group" id="form-sub-days-wrapper" style="display: none;">
+                    <label>Días de la semana</label>
+                    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.25rem;">
+                        <label class="btn btn-secondary btn-small" style="font-size: 0.75rem;"><input type="checkbox" value="1" class="day-checkbox"> Lun</label>
+                        <label class="btn btn-secondary btn-small" style="font-size: 0.75rem;"><input type="checkbox" value="2" class="day-checkbox"> Mar</label>
+                        <label class="btn btn-secondary btn-small" style="font-size: 0.75rem;"><input type="checkbox" value="3" class="day-checkbox"> Mié</label>
+                        <label class="btn btn-secondary btn-small" style="font-size: 0.75rem;"><input type="checkbox" value="4" class="day-checkbox"> Jue</label>
+                        <label class="btn btn-secondary btn-small" style="font-size: 0.75rem;"><input type="checkbox" value="5" class="day-checkbox"> Vie</label>
+                        <label class="btn btn-secondary btn-small" style="font-size: 0.75rem;"><input type="checkbox" value="6" class="day-checkbox"> Sáb</label>
+                        <label class="btn btn-secondary btn-small" style="font-size: 0.75rem;"><input type="checkbox" value="0" class="day-checkbox"> Dom</label>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('modal-client-subs')">Cerrar</button>
+                <button class="btn btn-primary" onclick="addSubscriptionFromAdminForm()"><i class="fa-solid fa-plus"></i> Añadir Suscripción</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: CREAR / EDITAR PRODUCTO (ADMIN) -->
+    <div id="modal-product" class="modal-overlay">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 id="modal-product-title">Nuevo Producto</h3>
+                <button class="modal-close" onclick="closeModal('modal-product')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="form-product-id">
+                <div class="form-group">
+                    <label for="form-product-name">Nombre del Producto</label>
+                    <input type="text" id="form-product-name" class="form-control" required placeholder="Ej: Barra de Pan Rústica">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="form-product-price">Precio (€)</label>
+                        <input type="number" step="0.01" id="form-product-price" class="form-control" required placeholder="1.20">
+                    </div>
+                    <div class="form-group">
+                        <label for="form-product-category">Categoría (Opcional)</label>
+                        <input type="text" id="form-product-category" class="form-control" placeholder="Ej: Pan, Bollería">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="form-product-image">URL de Imagen</label>
+                    <input type="text" id="form-product-image" class="form-control" placeholder="https://ejemplo.com/imagen.png">
+                </div>
+                <div class="form-group">
+                    <label for="form-product-description">Descripción</label>
+                    <textarea id="form-product-description" class="form-control" placeholder="Detalles del producto..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('modal-product')">Cancelar</button>
+                <button class="btn btn-primary" onclick="saveProductFromForm()">Guardar Producto</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: REGISTRAR PEDIDO MANUAL / EXTRA (ADMIN) -->
+    <div id="modal-manual-order" class="modal-overlay">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>Nuevo Pedido Extra (Reparto)</h3>
+                <button class="modal-close" onclick="closeModal('modal-manual-order')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="form-order-client">Cliente</label>
+                    <select id="form-order-client" class="form-control">
+                        <!-- Dinámico -->
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="form-order-date">Fecha de Entrega</label>
+                    <input type="date" id="form-order-date" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>Añadir Productos</label>
+                    <div id="form-order-products-selector" class="order-selector-grid">
+                        <!-- Dinámico -->
+                    </div>
+                </div>
+                <div style="text-align: right; font-size: 1.15rem; font-weight: bold; margin-top: 1rem;">
+                    Total: <span id="form-order-total-price" style="color: var(--primary-color);">0.00 €</span>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('modal-manual-order')">Cancelar</button>
+                <button class="btn btn-primary" onclick="saveManualOrderFromAdmin()"><i class="fa-solid fa-floppy-disk"></i> Guardar Pedido</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: LIQUIDAR DEUDA / REGISTRAR PAGO (CLIENTE Y ADMIN) -->
+    <div id="modal-payment" class="modal-overlay">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>Liquidar / Cobrar Deuda</h3>
+                <button class="modal-close" onclick="closeModal('modal-payment')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="form-payment-client-id">
+                
+                <div style="text-align: center; margin-bottom: 1.5rem;">
+                    <span style="font-size: 0.85rem; color: var(--text-muted);">Importe Deudor Máximo:</span>
+                    <div id="form-payment-max-debt" style="font-size: 2.25rem; font-weight: 800; color: var(--danger);">0.00 €</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="form-payment-amount">Importe a Pagar (€)</label>
+                    <input type="number" step="0.01" id="form-payment-amount" class="form-control" style="font-size: 1.25rem; text-align: center; font-weight: bold;" placeholder="0.00">
+                </div>
+
+                <div class="form-group">
+                    <label>Método de Pago</label>
+                    <div class="payment-methods-grid">
+                        <div id="method-card" class="payment-method-card active" onclick="selectPaymentMethod('Tarjeta')">
+                            <div class="payment-icon"><i class="fa-solid fa-credit-card"></i></div>
+                            <div class="payment-label">Tarjeta</div>
+                        </div>
+                        <div id="method-bizum" class="payment-method-card" onclick="selectPaymentMethod('Bizum')">
+                            <div class="payment-icon"><i class="fa-solid fa-mobile-screen-button"></i></div>
+                            <div class="payment-label">Bizum</div>
+                        </div>
+                        <div id="method-cash" class="payment-method-card" onclick="selectPaymentMethod('Efectivo')">
+                            <div class="payment-icon"><i class="fa-solid fa-money-bill-1-wave"></i></div>
+                            <div class="payment-label">Efectivo</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('modal-payment')">Cancelar</button>
+                <button class="btn btn-primary" onclick="submitPaymentProcess()"><i class="fa-solid fa-circle-check"></i> Confirmar Pago</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: AÑADIR SUSCRIPCIÓN (MODO CLIENTE) -->
+    <div id="modal-client-add-sub" class="modal-overlay">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>Añadir Entrega Periódica</h3>
+                <button class="modal-close" onclick="closeModal('modal-client-add-sub')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="form-client-sub-product">Seleccionar Producto</label>
+                    <select id="form-client-sub-product" class="form-control">
+                        <!-- Dinámico -->
+                    </select>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="form-client-sub-qty">Cantidad</label>
+                        <input type="number" id="form-client-sub-qty" class="form-control" value="1" min="1">
+                    </div>
+                    <div class="form-group">
+                        <label for="form-client-sub-freq">Frecuencia</label>
+                        <select id="form-client-sub-freq" class="form-control" onchange="onClientSubFreqChange(this.value)">
+                            <option value="daily">Diario</option>
+                            <option value="weekly">Semanal</option>
+                            <option value="monthly">Mensual</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group" id="form-client-sub-days-wrapper" style="display: none;">
+                    <label>Días de reparto semanal</label>
+                    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.25rem;">
+                        <label class="btn btn-secondary btn-small" style="font-size: 0.75rem;"><input type="checkbox" value="1" class="client-day-checkbox"> Lun</label>
+                        <label class="btn btn-secondary btn-small" style="font-size: 0.75rem;"><input type="checkbox" value="2" class="client-day-checkbox"> Mar</label>
+                        <label class="btn btn-secondary btn-small" style="font-size: 0.75rem;"><input type="checkbox" value="3" class="client-day-checkbox"> Mié</label>
+                        <label class="btn btn-secondary btn-small" style="font-size: 0.75rem;"><input type="checkbox" value="4" class="client-day-checkbox"> Jue</label>
+                        <label class="btn btn-secondary btn-small" style="font-size: 0.75rem;"><input type="checkbox" value="5" class="client-day-checkbox"> Vie</label>
+                        <label class="btn btn-secondary btn-small" style="font-size: 0.75rem;"><input type="checkbox" value="6" class="client-day-checkbox"> Sáb</label>
+                        <label class="btn btn-secondary btn-small" style="font-size: 0.75rem;"><input type="checkbox" value="0" class="client-day-checkbox"> Dom</label>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('modal-client-add-sub')">Cancelar</button>
+                <button class="btn btn-primary" onclick="saveSubscriptionFromClient()"><i class="fa-solid fa-circle-check"></i> Activar Suscripción</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: CONFIGURAR MODO VACACIONES (CLIENTE) -->
+    <div id="modal-client-vacation" class="modal-overlay">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-umbrella-beach"></i> Pausar Reparto por Vacaciones</h3>
+                <button class="modal-close" onclick="closeModal('modal-client-vacation')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.25rem;">
+                    Durante las fechas seleccionadas, no recibirás productos de tus suscripciones y no se añadirá ningún cargo a tu deuda.
+                </p>
+                <div class="form-group">
+                    <label for="vacation-start-date">Fecha de inicio de pausa:</label>
+                    <input type="date" id="vacation-start-date" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label for="vacation-end-date">Fecha de fin (inclusive):</label>
+                    <input type="date" id="vacation-end-date" class="form-control">
+                </div>
+            </div>
+            <div class="modal-footer" style="display: flex; justify-content: space-between;">
+                <button class="btn btn-danger btn-small" onclick="clearClientVacation()">
+                    <i class="fa-solid fa-play"></i> Reanudar Ahora
+                </button>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button class="btn btn-secondary" onclick="closeModal('modal-client-vacation')">Cancelar</button>
+                    <button class="btn btn-primary" onclick="saveClientVacation()">
+                        <i class="fa-solid fa-check"></i> Guardar Pausa
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: COBRO RÁPIDO EN RUTA (REPARTIDOR) -->
+    <div id="modal-ruta-quick-pay" class="modal-overlay">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-hand-holding-dollar"></i> Cobro en Mano (Puerta)</h3>
+                <button class="modal-close" onclick="closeModal('modal-ruta-quick-pay')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="form-quick-client-id">
+                <div style="text-align: center; margin-bottom: 1rem;">
+                    <h4 id="quick-pay-client-name" style="font-size: 1.15rem; font-weight: 700;">Cliente</h4>
+                    <span style="font-size: 0.8rem; color: var(--text-muted);">Deuda pendiente:</span>
+                    <div id="quick-pay-debt-text" style="font-size: 1.75rem; font-weight: 800; color: var(--danger);">0.00 €</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="form-quick-amount">Importe cobrado en mano (€)</label>
+                    <input type="number" step="0.01" id="form-quick-amount" class="form-control" style="font-size: 1.35rem; text-align: center; font-weight: bold;">
+                </div>
+
+                <div class="form-group">
+                    <label>Forma de pago recibida:</label>
+                    <div class="payment-methods-grid">
+                        <div id="quick-method-cash" class="payment-method-card active" onclick="selectQuickMethod('Efectivo')">
+                            <div class="payment-icon"><i class="fa-solid fa-money-bill-wave"></i></div>
+                            <div class="payment-label">Efectivo</div>
+                        </div>
+                        <div id="quick-method-bizum" class="payment-method-card" onclick="selectQuickMethod('Bizum')">
+                            <div class="payment-icon"><i class="fa-solid fa-mobile-screen-button"></i></div>
+                            <div class="payment-label">Bizum</div>
+                        </div>
+                        <div id="quick-method-card" class="payment-method-card" onclick="selectQuickMethod('Tarjeta')">
+                            <div class="payment-icon"><i class="fa-solid fa-credit-card"></i></div>
+                            <div class="payment-label">Tarjeta / Datáfono</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('modal-ruta-quick-pay')">Cancelar</button>
+                <button class="btn btn-success" onclick="submitQuickPayment()">
+                    <i class="fa-solid fa-circle-check"></i> Registrar Cobro
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JS Aplicación -->
+    <script src="app.js"></script>
+</body>
+</html>
