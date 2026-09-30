@@ -516,10 +516,13 @@
                         <div class="debt-label">Saldo Acumulado (Deuda Pendiente)</div>
                         <div id="client-debt-value" class="debt-value no-debt">0.00 €</div>
                     </div>
-                    <div id="client-debt-action-container" class="debt-actions" style="display: none;">
+                    <div id="client-debt-action-container" class="debt-actions" style="display: none; flex-direction: column; gap: 0.5rem; align-items: flex-end;">
                         <button class="btn btn-primary btn-large" onclick="openPaymentModal()">
                             <i class="fa-solid fa-credit-card"></i> Liquidar Deuda
                         </button>
+                        <a id="btn-client-whatsapp-balance" href="#" target="_blank" class="btn btn-small" style="background: rgba(37,211,102,0.15); color: #25d366; border: 1px solid rgba(37,211,102,0.3); text-decoration:none;" title="Enviar recordatorio con total acumulado">
+                            <i class="fa-brands fa-whatsapp"></i> Compartir por WhatsApp
+                        </a>
                     </div>
                 </div>
 

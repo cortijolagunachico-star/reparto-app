@@ -585,7 +585,14 @@ function loadRepartoDay() {
         }
         
         // Botones de acciones
-        let actionsHtml = `<div class="client-actions">`;
+        let actionsHtml = `<div class="client-actions" style="display:flex; gap:0.35rem; justify-content:flex-end; align-items:center;">`;
+        if (client.phone) {
+            actionsHtml += `
+                <a href="${generateOrderWhatsAppUrl(order.id)}" target="_blank" class="btn btn-small" style="background: rgba(37,211,102,0.15); color: #25d366; border: 1px solid rgba(37,211,102,0.3); padding: 0.4rem 0.6rem; text-decoration:none;" title="Enviar WhatsApp con pedido y saldo acumulado">
+                    <i class="fa-brands fa-whatsapp"></i>
+                </a>
+            `;
+        }
         if (order.status === 'pending') {
             actionsHtml += `
                 <button class="btn btn-success btn-small" title="Entregar" onclick="changeOrderStatus('${order.id}', 'delivered')">
@@ -1140,9 +1147,14 @@ function renderFinance() {
                 </td>
                 <td style="color:var(--danger); font-weight:bold; font-size:1rem;">${client.balance.toFixed(2)} €</td>
                 <td style="text-align:right;">
-                    <button class="btn btn-success btn-small" onclick="openAdminPaymentModal(${client.id})">
-                        <i class="fa-solid fa-hand-holding-dollar"></i> Cobrar Deuda
-                    </button>
+                    <div style="display:inline-flex; gap:0.4rem; justify-content:flex-end;">
+                        <a href="${generateDebtReminderWhatsAppUrl(client.id)}" target="_blank" class="btn btn-small" style="background: rgba(37,211,102,0.15); color: #25d366; border: 1px solid rgba(37,211,102,0.3); text-decoration:none; padding: 0.4rem 0.6rem; display:inline-flex; align-items:center; gap:0.35rem;" title="Recordar saldo acumulado por WhatsApp">
+                            <i class="fa-brands fa-whatsapp"></i> Recordar
+                        </a>
+                        <button class="btn btn-success btn-small" onclick="openAdminPaymentModal(${client.id})">
+                            <i class="fa-solid fa-hand-holding-dollar"></i> Cobrar
+                        </button>
+                    </div>
                 </td>
             `;
             clientsBody.appendChild(row);
@@ -1417,7 +1429,9 @@ function renderClientDashboard() {
     
     if (client.balance > 0) {
         debtVal.className = 'debt-value has-debt';
-        payAction.style.display = 'block';
+        payAction.style.display = 'flex';
+        const waBtn = document.getElementById('btn-client-whatsapp-balance');
+        if (waBtn) waBtn.href = generateDebtReminderWhatsAppUrl(client.id);
     } else {
         debtVal.className = 'debt-value no-debt';
         payAction.style.display = 'none';
@@ -2034,11 +2048,14 @@ function loadRutaMovil() {
             </div>
 
             <div class="ruta-quick-actions">
-                <a href="${mapsUrl}" target="_blank" class="btn-touch-nav maps">
-                    <i class="fa-solid fa-diamond-turn-right"></i> Cómo llegar (GPS)
+                <a href="${mapsUrl}" target="_blank" class="btn-touch-nav maps" title="Abrir en Google Maps">
+                    <i class="fa-solid fa-diamond-turn-right"></i> GPS
                 </a>
-                <a href="${telUrl}" class="btn-touch-nav phone">
-                    <i class="fa-solid fa-phone"></i> Llamar al cliente
+                <a href="${telUrl}" class="btn-touch-nav phone" title="Llamar">
+                    <i class="fa-solid fa-phone"></i> Llamar
+                </a>
+                <a href="${generateOrderWhatsAppUrl(order.id)}" target="_blank" class="btn-touch-nav whatsapp" title="Enviar WhatsApp con total acumulado">
+                    <i class="fa-brands fa-whatsapp"></i> WhatsApp
                 </a>
             </div>
 
@@ -2236,4 +2253,73 @@ async function syncToCloudFirestore() {
     } catch (err) {
         console.log('Nota: Sincronización en la nube disponible cuando se configuran credenciales válidas:', err);
     }
+}
+
+// 19. GENERACIÓN DE MENSAJES DE WHATSAPP CON TOTAL ACUMULADO
+function formatPhoneForWhatsApp(phone) {
+    if (!phone) return '';
+    let cleaned = phone.replace(/[^0-9]/g, '');
+    if (cleaned.length === 9) {
+        cleaned = '34' + cleaned;
+    }
+    return cleaned;
+}
+
+function generateOrderWhatsAppUrl(orderId) {
+    const order = db.orders.find(o => o.id === orderId);
+    if (!order) return '#';
+    const client = db.clients.find(c => c.id === order.clientId);
+    if (!client) return '#';
+
+    const phone = formatPhoneForWhatsApp(client.phone);
+    const businessName = db.settings.businessName || "Distribución";
+    
+    // Detalle de productos
+    let itemsText = "";
+    order.items.forEach(item => {
+        const prod = db.products.find(p => p.id === item.productId);
+        const name = prod ? prod.name : `Producto #${item.productId}`;
+        itemsText += `  • ${item.quantity}x ${name} (${(item.price * item.quantity).toFixed(2)} €)\n`;
+    });
+
+    const totalPedido = order.total.toFixed(2);
+    const totalAcumulado = client.balance.toFixed(2);
+
+    let message = `¡Hola *${client.name}*! 👋\n\n`;
+    message += `Le informamos de su entrega de *${businessName}*:\n\n`;
+    message += `📦 *Detalle del pedido de hoy:*\n${itemsText}`;
+    message += `💶 *Total entrega de hoy:* ${totalPedido} €\n\n`;
+    message += `📊 *TOTAL ACUMULADO PENDIENTE:* *${totalAcumulado} €*\n\n`;
+    
+    if (client.balance > 0) {
+        message += `Puede liquidar su deuda al repartidor en efectivo o tarjeta, o mediante Bizum cuando le sea cómodo.\n`;
+    } else {
+        message += `¡Su cuenta se encuentra totalmente al corriente de pago (0 €)! 🎉\n`;
+    }
+    message += `\n¡Muchas gracias por su confianza!`;
+
+    if (!phone) {
+        return `https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`;
+    }
+    return `https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(message)}`;
+}
+
+function generateDebtReminderWhatsAppUrl(clientId) {
+    const client = db.clients.find(c => c.id === clientId);
+    if (!client) return '#';
+
+    const phone = formatPhoneForWhatsApp(client.phone);
+    const businessName = db.settings.businessName || "Distribución";
+    const totalAcumulado = client.balance.toFixed(2);
+
+    let message = `¡Hola *${client.name}*! 👋\n\n`;
+    message += `Le escribimos desde *${businessName}* para recordarle el estado actual de su cuenta de entregas a domicilio:\n\n`;
+    message += `📊 *TOTAL ACUMULADO PENDIENTE:* *${totalAcumulado} €*\n\n`;
+    message += `Puede abonar este saldo en la próxima entrega directamente al repartidor o cómodamente por Bizum.\n\n`;
+    message += `Si ya ha realizado el pago, por favor ignore este mensaje.\n¡Muchas gracias por su confianza!`;
+
+    if (!phone) {
+        return `https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`;
+    }
+    return `https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(message)}`;
 }
