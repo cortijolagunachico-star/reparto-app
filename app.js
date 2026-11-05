@@ -2279,7 +2279,7 @@ function generateOrderWhatsAppUrl(orderId) {
     order.items.forEach(item => {
         const prod = db.products.find(p => p.id === item.productId);
         const name = prod ? prod.name : `Producto #${item.productId}`;
-        itemsText += `  • ${item.quantity}x ${name} (${(item.price * item.quantity).toFixed(2)} €)\n`;
+        itemsText += `  • *${item.quantity}x ${name} (${(item.price * item.quantity).toFixed(2)} €)*\n`;
     });
 
     const totalPedido = order.total.toFixed(2);
@@ -2288,7 +2288,7 @@ function generateOrderWhatsAppUrl(orderId) {
     let message = `¡Hola *${client.name}*! 👋\n\n`;
     message += `Le informamos de su entrega de *${businessName}*:\n\n`;
     message += `📦 *Detalle del pedido de hoy:*\n${itemsText}`;
-    message += `💶 *Total entrega de hoy:* ${totalPedido} €\n\n`;
+    message += `💶 *Total entrega de hoy:* *${totalPedido} €*\n\n`;
     message += `📊 *TOTAL ACUMULADO PENDIENTE:* *${totalAcumulado} €*\n\n`;
     
     if (client.balance > 0) {
